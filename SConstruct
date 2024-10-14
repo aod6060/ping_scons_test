@@ -35,9 +35,7 @@ fp.write(
     """.format(**version_info)
 )
 
-fp.close();
-
-
+fp.close()
 
 env = Environment(
     TARGET_ARCH='x86',
@@ -46,6 +44,7 @@ env = Environment(
     LIBS=[
         'SDL2main',
         'SDL2',
+        'SDL2_image',
         'opengl32',
         'glew32',
         'kernel32.lib',
@@ -79,6 +78,7 @@ src_files = [
     '#/src/main.cpp',
     '#/src/engine/app.cpp',
     '#/src/engine/input.cpp',
+    '#/src/engine/render.cpp',
     '#/src/game/game.cpp'
 ]
 

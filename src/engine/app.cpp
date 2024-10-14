@@ -1,5 +1,5 @@
-#include "SDL_events.h"
-#include "SDL_timer.h"
+#include "SDL_image.h"
+#include "SDL_surface.h"
 #include "SDL_video.h"
 #include "sys.h"
 
@@ -21,11 +21,16 @@ namespace engine {
             this->config->width, 
             this->config->height, 
             SDL_WINDOW_OPENGL);
-
         this->gl_context = SDL_GL_CreateContext(this->window);
         glewInit();
 
+        // Setup Icon
+        SDL_Surface* icon = IMG_Load("data/icon/icon_32.png");
+        SDL_SetWindowIcon(window, icon);
+        SDL_FreeSurface(icon);
+
         this->input.init();
+        this->render.init();
 
         if(this->config->callbacks) {
             this->config->callbacks->init(this);
@@ -72,6 +77,7 @@ namespace engine {
             this->config->callbacks->release(this);
         }
 
+        this->render.release();
         this->input.release();
         
         SDL_GL_DeleteContext(this->gl_context);

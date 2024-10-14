@@ -1,9 +1,4 @@
-#include "SDL_events.h"
-#include "SDL_mouse.h"
-#include "glm/ext/vector_float2.hpp"
 #include "sys.h"
-#include <algorithm>
-#include <functional>
 
 
 namespace engine {

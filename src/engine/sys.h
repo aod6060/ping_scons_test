@@ -16,6 +16,7 @@
 
 
 #include <SDL.h>
+#include <SDL_image.h>
 #include <glm/glm.hpp>
 #include <glm/ext.hpp>
 #define GLEW_NO_GLU
@@ -350,6 +351,9 @@ namespace engine {
     };
 
     struct Render {
+        uint32_t width = 640;
+        uint32_t height = 480;
+
         // Shaders
         uint32_t vertex_shader = 0;
         uint32_t frag_shader = 0;
@@ -358,10 +362,46 @@ namespace engine {
         uint32_t program = 0;
 
         // VertexArray
-        uint32_t vertex_array;
+        uint32_t vertex_array = 0;
+
+        // Uniforms
+        uint32_t u_proj = 0;
+        uint32_t u_view = 0;
+        uint32_t u_model = 0;
+
+        // Attributes
+        const uint32_t A_VERTICES = 0;
 
         // VertexBuffer
-        
+        std::vector<glm::vec3> vertices_list;
+        uint32_t vertices_buffer = 0;
+
+        // Index Array
+        std::vector<uint32_t> indencies_list;
+        uint32_t indencies_buffer = 0;
+
+        void init();
+        void release();
+
+        void clear(const glm::vec4& color);
+        void startFrame();
+        void endFrame();
+
+        void setProjection(const glm::mat4& proj);
+        void setView(const glm::mat4& view);
+        void setModel(const glm::mat4& model);
+
+        void draw();
+
+        uint32_t getWidth();
+        uint32_t getHeight();
+
+        // Create Shader
+        uint32_t createShader(GLenum type, std::string path);
+
+        // Create and Destroy Program
+        uint32_t createProgram(const std::vector<uint32_t>& shaders);
+        void deleteProgram(uint32_t id, const std::vector<uint32_t>& shaders);
     };
 
     struct Context {
@@ -379,6 +419,7 @@ namespace engine {
         SDL_Event event;
 
         Input input;
+        Render render;
 
         void init();
         void update();
