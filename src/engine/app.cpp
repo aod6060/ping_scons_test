@@ -30,7 +30,7 @@ namespace engine {
         SDL_FreeSurface(icon);
 
         this->input.init();
-        this->render.init();
+        this->render.init(this);
 
         if(this->config->callbacks) {
             this->config->callbacks->init(this);

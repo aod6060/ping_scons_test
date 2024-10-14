@@ -351,6 +351,8 @@ namespace engine {
     };
 
     struct Render {
+        Context* context;
+        
         uint32_t width = 640;
         uint32_t height = 480;
 
@@ -380,7 +382,9 @@ namespace engine {
         std::vector<uint32_t> indencies_list;
         uint32_t indencies_buffer = 0;
 
-        void init();
+        // Screen Framebuffer Section
+
+        void init(Context* context);
         void release();
 
         void clear(const glm::vec4& color);

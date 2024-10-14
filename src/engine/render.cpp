@@ -4,7 +4,9 @@
 
 namespace engine {
 
-    void Render::init() {
+    void Render::init(Context* context) {
+        this->context = context;
+
         glDisable(GL_DEPTH_TEST);
 
         // Shader
@@ -72,6 +74,8 @@ namespace engine {
         // Shaders
         glDeleteShader(this->vertex_shader);
         glDeleteShader(this->frag_shader);
+
+        this->context = nullptr;
     }
 
 
