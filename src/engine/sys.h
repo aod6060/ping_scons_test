@@ -350,9 +350,20 @@ namespace engine {
     };
 
     struct Render {
+        // Shaders
+        uint32_t vertex_shader = 0;
+        uint32_t frag_shader = 0;
+        
+        // Program
+        uint32_t program = 0;
 
+        // VertexArray
+        uint32_t vertex_array;
+
+        // VertexBuffer
+        
     };
-    
+
     struct Context {
         Config* config;
 
