@@ -1,3 +1,44 @@
+# Generated Version Header File
+
+import version
+
+version_info = {
+    "short_name": str(version.short_name),
+    "name": str(version.name),
+    "major": int(version.major),
+    "minor": int(version.minor),
+    "patch": int(version.patch),
+    "status": str(version.status),
+    "build": str(version.build),
+    "year": int(version.year)
+}
+
+
+
+fp = open("src/engine/version.gen.h", "w")
+fp.write(
+    """
+// Don't edit this file because its generated from buildsystem.
+#ifndef VERSION_GEN_H
+#define VERSION_GEN_H
+
+#define VERSION_SHORT_NAME "{short_name}"
+#define VERSION_NAME "{name}"
+#define VERSION_MAJOR {major}
+#define VERSION_MINOR {minor}
+#define VERSION_PATCH {patch}
+#define VERSION_STATUS "{status}"
+#define VERSION_BUILD "{build}"
+#define VERSION_YEAR {year}
+
+#endif
+    """.format(**version_info)
+)
+
+fp.close();
+
+
+
 env = Environment(
     TARGET_ARCH='x86',
     CPPPATH="include",
@@ -36,9 +77,9 @@ target="#/bin/run"
 
 src_files = [
     '#/src/main.cpp',
-    '#/src/app.cpp',
-    '#/src/input.cpp',
-    '#/src/game.cpp'
+    '#/src/engine/app.cpp',
+    '#/src/engine/input.cpp',
+    '#/src/game/game.cpp'
 ]
 
 env.Program(target=target, source=src_files)

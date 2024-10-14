@@ -21,6 +21,7 @@
 #define GLEW_NO_GLU
 #include <GL/glew.h>
 
+#include "version.h"
 
 namespace engine {
     struct Context;
@@ -348,6 +349,10 @@ namespace engine {
         void toggleGrab();
     };
 
+    struct Render {
+
+    };
+    
     struct Context {
         Config* config;
 

@@ -7,6 +7,9 @@
 namespace engine {
     // Context
     void Context::init() {
+
+        std::cout << VERSION_FULL_NAME << "\n";
+        
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
         SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);

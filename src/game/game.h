@@ -2,7 +2,7 @@
 #define GAME_H
 
 
-#include "sys.h"
+#include "../engine/sys.h"
 
 namespace game {
 
