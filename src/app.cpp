@@ -20,8 +20,9 @@ namespace engine {
             SDL_WINDOW_OPENGL);
 
         this->gl_context = SDL_GL_CreateContext(this->window);
-
         glewInit();
+
+        this->input.init();
 
         if(this->config->callbacks) {
             this->config->callbacks->init(this);
@@ -43,6 +44,8 @@ namespace engine {
                     this->exit();
                 }
 
+                this->input.handleEvent(this);
+
                 if(this->config->callbacks) {
                     this->config->callbacks->handleEvents(this);
                 }
@@ -55,6 +58,8 @@ namespace engine {
                 this->config->callbacks->render(this);
             }
 
+            this->input.update(this);
+
             SDL_GL_SwapWindow(this->window);
         }
     }
@@ -63,6 +68,9 @@ namespace engine {
         if(this->config->callbacks) {
             this->config->callbacks->release(this);
         }
+
+        this->input.release();
+        
         SDL_GL_DeleteContext(this->gl_context);
         SDL_DestroyWindow(this->window);
     }

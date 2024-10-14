@@ -38,7 +38,7 @@ src_files = [
     '#/src/main.cpp',
     '#/src/app.cpp',
     '#/src/input.cpp',
-    "#/src/game.cpp"
+    '#/src/game.cpp'
 ]
 
 env.Program(target=target, source=src_files)

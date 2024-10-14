@@ -320,9 +320,12 @@ namespace engine {
         glm::vec2 position;
         glm::vec2 relative;
 
+        float time = 0.0;
+        float maxTime = 1.0;
+        
         void init();
         void handleEvent(Context* context);
-        void update();
+        void update(Context* context);
         void release();
 
         // Keyboard
@@ -332,10 +335,10 @@ namespace engine {
         bool isKeyReleasedOnce(const Keyboard& key);
 
         // Mouse
-        bool isMouseButtonReleased(const Keyboard& key);
-        bool isMouseButtonPressedOnce(const Keyboard& key);
-        bool isMouseButtonPressed(const Keyboard& key);
-        bool isMouseButtonReleasedOnce(const Keyboard& key);
+        bool isMouseButtonReleased(const MouseButtons& mb);
+        bool isMouseButtonPressedOnce(const MouseButtons& mb);
+        bool isMouseButtonPressed(const MouseButtons& mb);
+        bool isMouseButtonReleasedOnce(const MouseButtons& mb);
 
         glm::vec2 getPosition();
         glm::vec2 getRelative();

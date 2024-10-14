@@ -8,6 +8,9 @@ namespace game {
 
 
     struct GameApplication : public engine::IApplication {
+
+        uint32_t count = 0;
+        
         virtual void init(engine::Context* context);
         virtual void handleEvents(engine::Context* context);
         virtual void update(engine::Context* context);
