@@ -8,15 +8,16 @@ namespace game {
 
 
     struct GameApplication : public engine::IApplication {
-
+        engine::Context* context = nullptr;
+        
         uint32_t count = 0;
         glm::vec2 pos = glm::vec2(0.0f);
 
         virtual void init(engine::Context* context);
-        virtual void handleEvents(engine::Context* context);
-        virtual void update(engine::Context* context);
-        virtual void render(engine::Context* context);
-        virtual void release(engine::Context* context);
+        virtual void handleEvents();
+        virtual void update();
+        virtual void render();
+        virtual void release();
     };
 
 }

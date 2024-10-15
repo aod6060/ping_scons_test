@@ -6,12 +6,13 @@ namespace game {
 
     // Game
     void GameApplication::init(engine::Context* context) {
+        this->context = context;
     }
 
-    void GameApplication::handleEvents(engine::Context* context) {
+    void GameApplication::handleEvents() {
     }
 
-    void GameApplication::update(engine::Context* context) {
+    void GameApplication::update() {
 
         if(context->input.isKeyPressed(engine::Input::Keyboard::KEYS_LEFT)) {
             pos.x -= 64.0f * context->getDelta();
@@ -26,7 +27,7 @@ namespace game {
         }
     }
 
-    void GameApplication::render(engine::Context* context) {
+    void GameApplication::render() {
         context->render.startFrame();
         context->render.clear(glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
         context->render.bindShader();
@@ -45,6 +46,7 @@ namespace game {
         context->render.endFrame();
     }
 
-    void GameApplication::release(engine::Context* context) {
+    void GameApplication::release() {
+        context = nullptr;
     }
 }

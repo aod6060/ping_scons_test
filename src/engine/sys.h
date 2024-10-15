@@ -29,10 +29,43 @@ namespace engine {
 
     struct IApplication {
         virtual void init(Context* context) = 0;
-        virtual void handleEvents(Context* context) = 0;
-        virtual void update(Context* context) = 0;
-        virtual void render(Context* context) = 0;
-        virtual void release(Context* context) = 0;
+        virtual void handleEvents() = 0;
+        virtual void update() = 0;
+        virtual void render() = 0;
+        virtual void release() = 0;
+    };
+
+    struct IApplicationContext {
+        virtual void init(IApplication* app) = 0;
+        virtual void handleEvents();
+        virtual void update();
+        virtual void render();
+        virtual void release();
+    };
+
+    struct AbstractGlobalVariables {
+        std::map<std::string, int32_t> int_var;
+        std::map<std::string, uint32_t> uint_var;
+        std::map<std::string, float> float_var;
+        std::map<std::string, bool> bool_var;
+        std::map<std::string, std::string> string_var;
+
+        // Getters
+        int32_t getIntVar(std::string name);
+        uint32_t getUIntVar(std::string name);
+        float getFloatVar(std::string name);
+        bool getBoolVar(std::string name);
+        std::string getStringVar(std::string name);
+        // Setters
+        void setIntVar(std::string name, int32_t value);
+        void setUIntVar(std::string name, uint32_t value);
+        void setFloatVar(std::string name, float value);
+        void setBoolVar(std::string name, bool value);
+        std::string getStringVar(std::string name, std::string value);
+
+        virtual void new_game() = 0;
+        virtual void save_game(std::string path) = 0;
+        virtual void load_game(std::string path) = 0;
     };
 
     struct Config {
@@ -436,7 +469,7 @@ namespace engine {
             void setScreenWidth(float width);
             void setScreenHeight(float height);
             void setBlurAmount(float blurAmount);
-            
+
             void draw();
         };
 
@@ -551,5 +584,7 @@ namespace engine {
         void setConfig(Config* config);
     };
 }
+
+#include "entity/entity.h"
 
 #endif

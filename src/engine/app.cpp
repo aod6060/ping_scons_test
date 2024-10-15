@@ -55,15 +55,15 @@ namespace engine {
                 this->input.handleEvent(this);
 
                 if(this->config->callbacks) {
-                    this->config->callbacks->handleEvents(this);
+                    this->config->callbacks->handleEvents();
                 }
             }
 
             if(this->config->callbacks) {
                 // Update Method
-                this->config->callbacks->update(this);
+                this->config->callbacks->update();
                 // Render Method
-                this->config->callbacks->render(this);
+                this->config->callbacks->render();
             }
 
             this->input.update(this);
@@ -74,7 +74,7 @@ namespace engine {
 
     void Context::release() {
         if(this->config->callbacks) {
-            this->config->callbacks->release(this);
+            this->config->callbacks->release();
         }
 
         this->render.release();

@@ -9,6 +9,7 @@ env["source_files"] += [
     source("app.cpp"),
     source("input.cpp"),
     source("render.cpp"),
+    source("abstract_global_variables.cpp")
 ]
 
 
