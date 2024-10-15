@@ -1,0 +1,11 @@
+Import("env")
+
+def source(file):
+    return "#/src/3rd/jsoncpp/" + file
+
+env["source_files"] += [
+    source("json_reader.cpp"),
+    source("json_value.cpp"),
+    source("json_writer.cpp")
+]
+

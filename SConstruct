@@ -72,14 +72,16 @@ env = Environment(
         '/SUBSYSTEM:CONSOLE',
         '/MACHINE:X86'])
 
+env["source_files"] = []
+
 target="#/bin/run"
 
-src_files = [
-    '#/src/main.cpp',
-    '#/src/engine/app.cpp',
-    '#/src/engine/input.cpp',
-    '#/src/engine/render.cpp',
-    '#/src/game/game.cpp'
-]
+# Compile 3rd Party Libraries
+SConscript("#/src/3rd/imgui/SConscript", exports="env")
+SConscript("#/src/3rd/jsoncpp/SConscript", exports="env")
 
-env.Program(target=target, source=src_files)
+SConscript("#/src/SConscript", exports="env")
+SConscript("#/src/engine/SConscript", exports="env")
+SConscript("#/src/game/SConscript", exports="env")
+
+env.Program(target=target, source=env["source_files"])

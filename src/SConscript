@@ -1,0 +1,11 @@
+Import("env")
+
+#env = env.Clone()
+
+def source(file):
+    return "#/src/" + file
+
+env["source_files"] += [
+    source("main.cpp")
+]
+

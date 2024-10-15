@@ -1,0 +1,14 @@
+Import("env")
+
+#env = env.Clone()
+
+def source(file):
+    return "#/src/engine/" + file
+
+env["source_files"] += [
+    source("app.cpp"),
+    source("input.cpp"),
+    source("render.cpp"),
+]
+
+
