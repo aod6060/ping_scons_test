@@ -351,7 +351,7 @@ namespace engine {
     };
 
     struct Render {
-        struct FinalPostprocess {
+        struct ScanlinePostprocess {
             Render* render = nullptr;
 
             // Shader
@@ -369,10 +369,56 @@ namespace engine {
             uint32_t u_view;
             uint32_t u_model;
             uint32_t u_tex0;
+            uint32_t u_width;
             uint32_t u_height;
-            uint32_t u_toggle;
+
+            // Attributes
+            const uint32_t A_VERTICES = 0;
+            const uint32_t A_TEXCOORDS = 1;
+
+            // Screen Framebuffer Section
+            uint32_t screen_framebuffer = 0;
+            uint32_t screen_texture = 0;
+
+            void init(Render* render);
+            void release();
+
+            void bind();
+            void unbind();
+
+            void setProjection(const glm::mat4& proj);
+            void setView(const glm::mat4& view);
+            void setModel(const glm::mat4& model);
+            void setScreenWidth(float width);
+            void setScreenHeight(float height);
+
+            void draw();
+
+            void bindFramebuffer();
+            void unbindFramebuffer();
+        };
+
+        struct BlurPostprocess {
+            Render* render;
+
+            // Shader
+            uint32_t vertex_shader;
+            uint32_t fragment_shader;
             
-            int toggle = 0;
+            // Program
+            uint32_t program;
+            
+            // Vertex Array
+            uint32_t vertex_array;
+
+            // Uniforms
+            uint32_t u_proj = 0;
+            uint32_t u_view = 0;
+            uint32_t u_model = 0;
+            uint32_t u_tex0 = 0;
+            uint32_t u_width = 0;
+            uint32_t u_height = 0;
+            uint32_t u_blur_amount = 0;
 
             // Attributes
             const uint32_t A_VERTICES = 0;
@@ -384,12 +430,13 @@ namespace engine {
             void bind();
             void unbind();
 
-            void setProjection(const glm::mat4& proj);
-            void setView(const glm::mat4& view);
-            void setModel(const glm::mat4& model);
+            void setProjection(const glm::mat4& m);
+            void setView(const glm::mat4& m);
+            void setModel(const glm::mat4& m);
+            void setScreenWidth(float width);
             void setScreenHeight(float height);
-            void blitToggle();
-
+            void setBlurAmount(float blurAmount);
+            
             void draw();
         };
 
@@ -434,7 +481,8 @@ namespace engine {
         uint32_t screen_texture = 0;
 
         // Postprocess
-        FinalPostprocess finalPost;
+        ScanlinePostprocess scanlinePost;
+        BlurPostprocess blurPost;
 
         void init(Context* context);
         void release();
@@ -483,7 +531,7 @@ namespace engine {
         void init();
         void update();
         void release();
-
+        
         std::string getCaption();
         uint32_t getWidth();
         uint32_t getHeight();

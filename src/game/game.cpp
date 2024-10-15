@@ -14,15 +14,15 @@ namespace game {
     void GameApplication::update(engine::Context* context) {
 
         if(context->input.isKeyPressed(engine::Input::Keyboard::KEYS_LEFT)) {
-            pos.x -= 32.0f * context->getDelta();
+            pos.x -= 64.0f * context->getDelta();
         } else if(context->input.isKeyPressed(engine::Input::Keyboard::KEYS_RIGHT)) {
-            pos.x += 32.0f * context->getDelta();
+            pos.x += 64.0f * context->getDelta();
         }
 
         if(context->input.isKeyPressed(engine::Input::Keyboard::KEYS_UP)) {
-            pos.y -= 32.0f * context->getDelta();
+            pos.y -= 64.0f * context->getDelta();
         } else if(context->input.isKeyPressed(engine::Input::Keyboard::KEYS_DOWN)) {
-            pos.y += 32.0f * context->getDelta();
+            pos.y += 64.0f * context->getDelta();
         }
     }
 

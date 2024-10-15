@@ -93,8 +93,8 @@ namespace engine {
             GL_UNSIGNED_BYTE,
             nullptr);
 
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glBindTexture(GL_TEXTURE_2D, 0);
@@ -109,11 +109,13 @@ namespace engine {
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-        this->finalPost.init(this);
+        this->scanlinePost.init(this);
+        this->blurPost.init(this);
     }
 
     void Render::release() {
-        this->finalPost.release();
+        this->blurPost.release();
+        this->scanlinePost.release();
 
         // Texture Section
         glDeleteTextures(1, &this->screen_texture);
@@ -146,26 +148,51 @@ namespace engine {
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 
-        // Draw Scene
+        // Handle Scanline Drawing
+        this->scanlinePost.bindFramebuffer();
+
         this->clear(glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
 
-        this->finalPost.bind();
+        this->scanlinePost.bind();
 
-        this->finalPost.setProjection(glm::ortho(0.0f, (float)this->getWidth(), 0.0f, (float)this->getHeight()));
-        this->finalPost.setView(glm::mat4(1.0f));
-        this->finalPost.setModel(
+        this->scanlinePost.setProjection(glm::ortho(0.0f, (float)this->getWidth(), 0.0f, (float)this->getHeight()));
+        this->scanlinePost.setView(glm::mat4(1.0f));
+        this->scanlinePost.setModel(
             glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)) *
             glm::scale(glm::mat4(1.0f), glm::vec3((float)this->getWidth(), (float)this->getHeight(), 0.0f))
         );
 
-        this->finalPost.setScreenHeight(this->getHeight());
-        this->finalPost.blitToggle();
+        this->scanlinePost.setScreenWidth(this->getWidth());
+        this->scanlinePost.setScreenHeight(this->getHeight());
         
         glBindTexture(GL_TEXTURE_2D, this->screen_texture);
-        this->finalPost.draw();
+        this->scanlinePost.draw();
         glBindTexture(GL_TEXTURE_2D, 0);
 
-        this->finalPost.unbind();
+        this->scanlinePost.unbind();
+
+        this->scanlinePost.unbindFramebuffer();
+
+        // Handle Blur Drawing
+        this->clear(glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+        
+        this->blurPost.bind();
+        this->blurPost.setProjection(glm::ortho(0.0f, (float)this->getWidth(), 0.0f, (float)this->getHeight()));
+        this->blurPost.setView(glm::mat4(1.0f));
+        this->blurPost.setModel(
+            glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)) *
+            glm::scale(glm::mat4(1.0f), glm::vec3((float)this->getWidth(), (float)this->getHeight(), 0.0f))
+        );
+
+        this->blurPost.setScreenWidth(this->getWidth());
+        this->blurPost.setScreenHeight(this->getHeight());
+        this->blurPost.setBlurAmount(4.0f);
+
+        glBindTexture(GL_TEXTURE_2D, this->scanlinePost.screen_texture);
+        this->blurPost.draw();
+        glBindTexture(GL_TEXTURE_2D, 0);
+
+        this->blurPost.unbind();        
     }
 
     void Render::clear(const glm::vec4& color) {
@@ -294,13 +321,13 @@ namespace engine {
     }
 
 
-    // FinalProprocess
-    void Render::FinalPostprocess::init(Render* render) {
+    // ScanlineProprocess
+    void Render::ScanlinePostprocess::init(Render* render) {
         this->render = render;
 
         // Shaders
-        this->vertex_shader = this->render->createShader(GL_VERTEX_SHADER, "data/shaders/postprocessing/final.vert.glsl");
-        this->fragment_shader = this->render->createShader(GL_FRAGMENT_SHADER, "data/shaders/postprocessing/final.frag.glsl");
+        this->vertex_shader = this->render->createShader(GL_VERTEX_SHADER, "data/shaders/postprocessing/scanline.vert.glsl");
+        this->fragment_shader = this->render->createShader(GL_FRAGMENT_SHADER, "data/shaders/postprocessing/scanline.frag.glsl");
 
         // Program
         this->program = this->render->createProgram({this->vertex_shader, this->fragment_shader});
@@ -316,8 +343,9 @@ namespace engine {
         this->u_view = glGetUniformLocation(this->program, "view");
         this->u_model = glGetUniformLocation(this->program, "model");
         this->u_tex0 = glGetUniformLocation(this->program, "tex0");
+        this->u_width = glGetUniformLocation(this->program, "width");
         this->u_height = glGetUniformLocation(this->program, "height");
-        this->u_toggle = glGetUniformLocation(this->program, "toggle");
+        //this->u_toggle = glGetUniformLocation(this->program, "toggle");
 
         glUniform1i(this->u_tex0, 0);
 
@@ -328,9 +356,52 @@ namespace engine {
         glBindVertexArray(0);
 
         glUseProgram(0);
+
+
+        // Framebuffer Init
+        glGenFramebuffers(1, &this->screen_framebuffer);
+
+        // Texture2D
+        glGenTextures(1, &this->screen_texture);
+
+        // Setup Texture2D
+        glBindTexture(GL_TEXTURE_2D, this->screen_texture);
+                glTexImage2D(
+            GL_TEXTURE_2D,
+            0,
+            GL_RGBA,
+            this->render->width,
+            this->render->height,
+            0,
+            GL_RGBA,
+            GL_UNSIGNED_BYTE,
+            nullptr);
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glBindTexture(GL_TEXTURE_2D, 0);
+
+        // Setup Framebuffer
+        glBindFramebuffer(GL_FRAMEBUFFER, this->screen_framebuffer);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, this->screen_texture, 0);
+
+        if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+            std::cout << "Framebuffer: wasn't created correctly!\n";
+        }
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+
     }
 
-    void Render::FinalPostprocess::release() {
+    void Render::ScanlinePostprocess::release() {
+        // Texture2D
+        glDeleteTextures(1, &this->screen_texture);
+
+        // Framebuffer
+        glDeleteFramebuffers(1, &this->screen_framebuffer);
         // Vertex Array
         glDeleteVertexArrays(1, &this->vertex_array);
 
@@ -344,27 +415,27 @@ namespace engine {
         this->render = nullptr;
     }
 
-    void Render::FinalPostprocess::bind() {
+    void Render::ScanlinePostprocess::bind() {
         glUseProgram(this->program);
     }
 
-    void Render::FinalPostprocess::unbind() {
+    void Render::ScanlinePostprocess::unbind() {
         glUseProgram(0);
     }
 
-    void Render::FinalPostprocess::setProjection(const glm::mat4& proj) {
+    void Render::ScanlinePostprocess::setProjection(const glm::mat4& proj) {
         glUniformMatrix4fv(u_proj, 1, GL_FALSE, &proj[0][0]);
     }
 
-    void Render::FinalPostprocess::setView(const glm::mat4& view) {
+    void Render::ScanlinePostprocess::setView(const glm::mat4& view) {
         glUniformMatrix4fv(u_view, 1, GL_FALSE, &view[0][0]);
     }
 
-    void Render::FinalPostprocess::setModel(const glm::mat4& model) {
+    void Render::ScanlinePostprocess::setModel(const glm::mat4& model) {
         glUniformMatrix4fv(u_model, 1, GL_FALSE, &model[0][0]);
     }
 
-    void Render::FinalPostprocess::draw() {
+    void Render::ScanlinePostprocess::draw() {
         glBindVertexArray(this->vertex_array);
 
         glBindBuffer(GL_ARRAY_BUFFER, this->render->vertices_buffer);
@@ -380,14 +451,114 @@ namespace engine {
         glBindVertexArray(0);
     }
 
-    void Render::FinalPostprocess::setScreenHeight(float height) {
+    void Render::ScanlinePostprocess::setScreenHeight(float height) {
         glUniform1f(this->u_height, height);
     }
 
-    void Render::FinalPostprocess::blitToggle() {
-        glUniform1i(this->u_toggle, this->toggle);
-        // Toggle for next frame
-        this->toggle = !this->toggle;
+    void Render::ScanlinePostprocess::setScreenWidth(float width) {
+        glUniform1f(this->u_width, width);
+    }
+
+    void Render::ScanlinePostprocess::bindFramebuffer() {
+        glBindFramebuffer(GL_FRAMEBUFFER, this->screen_framebuffer);
+    }
+
+    void Render::ScanlinePostprocess::unbindFramebuffer() {
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
+
+    // BlurPostprocess
+    void Render::BlurPostprocess::init(Render* render) {
+        this->render = render;
+
+        // Shader
+        this->vertex_shader = this->render->createShader(GL_VERTEX_SHADER, "data/shaders/postprocessing/blur.vert.glsl");
+        this->fragment_shader = this->render->createShader(GL_FRAGMENT_SHADER, "data/shaders/postprocessing/blur.frag.glsl");
+
+        // Program
+        this->program = this->render->createProgram({this->vertex_shader, this->fragment_shader});
+
+        // Vertex Array
+        glGenVertexArrays(1, &this->vertex_array);
+
+        // Setup Program
+        glUseProgram(this->program);
+        // Uniform
+        this->u_proj = glGetUniformLocation(this->program, "proj");
+        this->u_view = glGetUniformLocation(this->program, "view");
+        this->u_model = glGetUniformLocation(this->program, "model");
+        this->u_tex0 = glGetUniformLocation(this->program, "tex0");
+        glUniform1f(this->u_tex0, 0);
+        this->u_width = glGetUniformLocation(this->program, "width");
+        this->u_height = glGetUniformLocation(this->program, "height");
+        this->u_blur_amount = glGetUniformLocation(this->program, "blurAmount");
+        this->setBlurAmount(1.0f);
+
+        // Attributes
+        glBindVertexArray(this->vertex_array);
+        glEnableVertexAttribArray(this->A_VERTICES);
+        glEnableVertexAttribArray(this->A_TEXCOORDS);
+        glUseProgram(0);
+    }
+
+    void Render::BlurPostprocess::release() {
+
+        // Vertex Array
+        glDeleteVertexArrays(1, &this->vertex_array);
+        // Program
+        this->render->deleteProgram(this->program, {this->vertex_shader, this->fragment_shader});
+        // Shader
+        glDeleteShader(this->vertex_shader);
+        glDeleteShader(this->fragment_shader);
+    }
+
+    void Render::BlurPostprocess::bind() {
+        glUseProgram(this->program);
+    }
+
+    void Render::BlurPostprocess::unbind() {
+        glUseProgram(0);
+    }
+
+
+    void Render::BlurPostprocess::setProjection(const glm::mat4& m) {
+        glUniformMatrix4fv(this->u_proj, 1, GL_FALSE, &m[0][0]);
+    }
+
+    void Render::BlurPostprocess::setView(const glm::mat4& m) {
+        glUniformMatrix4fv(this->u_view, 1, GL_FALSE, &m[0][0]);
+    }
+
+    void Render::BlurPostprocess::setModel(const glm::mat4& m) {
+        glUniformMatrix4fv(this->u_model, 1, GL_FALSE, &m[0][0]);
+    }
+
+    void Render::BlurPostprocess::setScreenWidth(float width) {
+        glUniform1f(this->u_width, width);
+    }
+
+    void Render::BlurPostprocess::setScreenHeight(float height) {
+        glUniform1f(this->u_height, height);
+    }
+
+    void Render::BlurPostprocess::setBlurAmount(float blurAmount) {
+        glUniform1f(this->u_blur_amount, blurAmount);
+    }
+
+    void Render::BlurPostprocess::draw() {
+        glBindVertexArray(this->vertex_array);
+
+        glBindBuffer(GL_ARRAY_BUFFER, this->render->vertices_buffer);
+        glVertexAttribPointer(this->A_VERTICES, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+        glBindBuffer(GL_ARRAY_BUFFER, this->render->texCoord_buffer);
+        glVertexAttribPointer(this->A_TEXCOORDS, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->render->indencies_buffer);
+        glDrawElements(GL_TRIANGLES, this->render->indencies_list.size(), GL_UNSIGNED_INT, nullptr);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+        glBindVertexArray(0);
     }
 
 }
