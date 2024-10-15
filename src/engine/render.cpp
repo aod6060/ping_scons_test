@@ -1,4 +1,5 @@
 #include "glm/ext/matrix_clip_space.hpp"
+#include "glm/ext/matrix_transform.hpp"
 #include "sys.h"
 
 
@@ -29,6 +30,7 @@ namespace engine {
         // Setup VertexArray
         glBindVertexArray(this->vertex_array);
         glEnableVertexAttribArray(this->A_VERTICES);
+        glEnableVertexAttribArray(this->A_TEXCOORDS);
         glBindVertexArray(0);
 
         glUseProgram(0);
@@ -45,6 +47,18 @@ namespace engine {
         glBufferData(GL_ARRAY_BUFFER, this->vertices_list.size() * sizeof(glm::vec3), this->vertices_list.data(), GL_DYNAMIC_DRAW);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
 
+        /// Creating Default TexCoord Buffer
+        glGenBuffers(1, &this->texCoord_buffer);
+
+        this->texCoord_list.push_back(glm::vec2(0.0f, 0.0f));
+        this->texCoord_list.push_back(glm::vec2(1.0f, 0.0f));
+        this->texCoord_list.push_back(glm::vec2(0.0f, 1.0f));
+        this->texCoord_list.push_back(glm::vec2(1.0f, 1.0f));
+
+        glBindBuffer(GL_ARRAY_BUFFER, this->texCoord_buffer);
+        glBufferData(GL_ARRAY_BUFFER, this->texCoord_list.size() * sizeof(glm::vec2), this->texCoord_list.data(), GL_DYNAMIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+
         // Creating Default Indencies Buffer
         glGenBuffers(1, &this->indencies_buffer);
 
@@ -59,11 +73,56 @@ namespace engine {
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->indencies_buffer);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, this->indencies_list.size() * sizeof(uint32_t), this->indencies_list.data(), GL_DYNAMIC_DRAW);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+        // Framebuffer Section
+        glGenFramebuffers(1, &this->screen_framebuffer);
+
+        // Texture Section
+        glGenTextures(1, &this->screen_texture);
+
+        // Setup Texture
+        glBindTexture(GL_TEXTURE_2D, this->screen_texture);
+        glTexImage2D(
+            GL_TEXTURE_2D,
+            0,
+            GL_RGBA,
+            this->width,
+            this->height,
+            0,
+            GL_RGBA,
+            GL_UNSIGNED_BYTE,
+            nullptr);
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glBindTexture(GL_TEXTURE_2D, 0);
+
+        // Setup Framebuffer
+        glBindFramebuffer(GL_FRAMEBUFFER, this->screen_framebuffer);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, this->screen_texture, 0);
+
+        if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+            std::cout << "Framebuffer: wasn't created correctly!\n";
+        }
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        this->finalPost.init(this);
     }
 
     void Render::release() {
+        this->finalPost.release();
+
+        // Texture Section
+        glDeleteTextures(1, &this->screen_texture);
+        // Framebuffer Section
+        glDeleteFramebuffers(1, &this->screen_framebuffer);
         // Indencies Buffer
         glDeleteBuffers(1, &this->indencies_buffer);
+        // TexCoords Buffer
+        glDeleteBuffers(1, &this->texCoord_buffer);
         // Vertices Buffer
         glDeleteBuffers(1, &this->vertices_buffer);
         // Vertex Array
@@ -78,23 +137,50 @@ namespace engine {
         this->context = nullptr;
     }
 
+    void Render::startFrame() {
+        glBindFramebuffer(GL_FRAMEBUFFER, this->screen_framebuffer);
+        glViewport(0, 0, this->getWidth(), this->getHeight());
+    }
+
+    void Render::endFrame() {
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+
+        // Draw Scene
+        this->clear(glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+
+        this->finalPost.bind();
+
+        this->finalPost.setProjection(glm::ortho(0.0f, (float)this->getWidth(), 0.0f, (float)this->getHeight()));
+        this->finalPost.setView(glm::mat4(1.0f));
+        this->finalPost.setModel(
+            glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)) *
+            glm::scale(glm::mat4(1.0f), glm::vec3((float)this->getWidth(), (float)this->getHeight(), 0.0f))
+        );
+
+        this->finalPost.setScreenHeight(this->getHeight());
+        this->finalPost.blitToggle();
+        
+        glBindTexture(GL_TEXTURE_2D, this->screen_texture);
+        this->finalPost.draw();
+        glBindTexture(GL_TEXTURE_2D, 0);
+
+        this->finalPost.unbind();
+    }
 
     void Render::clear(const glm::vec4& color) {
         // This will always be 640x480 because the game will 
-        glViewport(0, 0, this->getWidth(), this->getHeight());
         glClearColor(color.r, color.g, color.b, color.a);
         glClear(GL_COLOR_BUFFER_BIT);
     }
 
-    void Render::startFrame() {
+    void Render::bindShader() {
         glUseProgram(this->program);
         // Add stuff for post processing later
-
         this->setProjection(glm::ortho(0.0f, (float)this->width, (float)this->height, 0.0f));
-
     }
 
-    void Render::endFrame() {
+    void Render::unbindShader() {
         // Add stuff for post process
         glUseProgram(0);
         // Render Framebuffer will add this later one
@@ -117,6 +203,8 @@ namespace engine {
 
         glBindBuffer(GL_ARRAY_BUFFER, this->vertices_buffer);
         glVertexAttribPointer(this->A_VERTICES, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+        glBindBuffer(GL_ARRAY_BUFFER, this->texCoord_buffer);
+        glVertexAttribPointer(this->A_TEXCOORDS, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
 
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->indencies_buffer);
@@ -203,6 +291,103 @@ namespace engine {
             glDetachShader(id, shader);
         });
         glDeleteProgram(id);
+    }
+
+
+    // FinalProprocess
+    void Render::FinalPostprocess::init(Render* render) {
+        this->render = render;
+
+        // Shaders
+        this->vertex_shader = this->render->createShader(GL_VERTEX_SHADER, "data/shaders/postprocessing/final.vert.glsl");
+        this->fragment_shader = this->render->createShader(GL_FRAGMENT_SHADER, "data/shaders/postprocessing/final.frag.glsl");
+
+        // Program
+        this->program = this->render->createProgram({this->vertex_shader, this->fragment_shader});
+
+        // Vertex Array
+        glGenVertexArrays(1, &this->vertex_array);
+
+        // Setup Program
+        glUseProgram(this->program);
+        
+        // Uniform
+        this->u_proj = glGetUniformLocation(this->program, "proj");
+        this->u_view = glGetUniformLocation(this->program, "view");
+        this->u_model = glGetUniformLocation(this->program, "model");
+        this->u_tex0 = glGetUniformLocation(this->program, "tex0");
+        this->u_height = glGetUniformLocation(this->program, "height");
+        this->u_toggle = glGetUniformLocation(this->program, "toggle");
+
+        glUniform1i(this->u_tex0, 0);
+
+        // Attributes
+        glBindVertexArray(this->vertex_array);
+        glEnableVertexAttribArray(this->A_VERTICES);
+        glEnableVertexAttribArray(this->A_TEXCOORDS);
+        glBindVertexArray(0);
+
+        glUseProgram(0);
+    }
+
+    void Render::FinalPostprocess::release() {
+        // Vertex Array
+        glDeleteVertexArrays(1, &this->vertex_array);
+
+        // Program
+        this->render->deleteProgram(this->program, {this->vertex_shader, this->fragment_shader});
+
+        // Shaders
+        glDeleteShader(this->vertex_shader);
+        glDeleteShader(this->fragment_shader);
+
+        this->render = nullptr;
+    }
+
+    void Render::FinalPostprocess::bind() {
+        glUseProgram(this->program);
+    }
+
+    void Render::FinalPostprocess::unbind() {
+        glUseProgram(0);
+    }
+
+    void Render::FinalPostprocess::setProjection(const glm::mat4& proj) {
+        glUniformMatrix4fv(u_proj, 1, GL_FALSE, &proj[0][0]);
+    }
+
+    void Render::FinalPostprocess::setView(const glm::mat4& view) {
+        glUniformMatrix4fv(u_view, 1, GL_FALSE, &view[0][0]);
+    }
+
+    void Render::FinalPostprocess::setModel(const glm::mat4& model) {
+        glUniformMatrix4fv(u_model, 1, GL_FALSE, &model[0][0]);
+    }
+
+    void Render::FinalPostprocess::draw() {
+        glBindVertexArray(this->vertex_array);
+
+        glBindBuffer(GL_ARRAY_BUFFER, this->render->vertices_buffer);
+        glVertexAttribPointer(this->A_VERTICES, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+        glBindBuffer(GL_ARRAY_BUFFER, this->render->texCoord_buffer);
+        glVertexAttribPointer(this->A_TEXCOORDS, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->render->indencies_buffer);
+        glDrawElements(GL_TRIANGLES, this->render->indencies_list.size(), GL_UNSIGNED_INT, nullptr);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+        glBindVertexArray(0);
+    }
+
+    void Render::FinalPostprocess::setScreenHeight(float height) {
+        glUniform1f(this->u_height, height);
+    }
+
+    void Render::FinalPostprocess::blitToggle() {
+        glUniform1i(this->u_toggle, this->toggle);
+        // Toggle for next frame
+        this->toggle = !this->toggle;
     }
 
 }

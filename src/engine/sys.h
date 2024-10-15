@@ -351,8 +351,50 @@ namespace engine {
     };
 
     struct Render {
+        struct FinalPostprocess {
+            Render* render = nullptr;
+
+            // Shader
+            uint32_t vertex_shader = 0;
+            uint32_t fragment_shader = 0;
+
+            // Program
+            uint32_t program = 0;
+
+            // VertexArray
+            uint32_t vertex_array;
+
+            // Uniforms
+            uint32_t u_proj;
+            uint32_t u_view;
+            uint32_t u_model;
+            uint32_t u_tex0;
+            uint32_t u_height;
+            uint32_t u_toggle;
+            
+            int toggle = 0;
+
+            // Attributes
+            const uint32_t A_VERTICES = 0;
+            const uint32_t A_TEXCOORDS = 1;
+
+            void init(Render* render);
+            void release();
+
+            void bind();
+            void unbind();
+
+            void setProjection(const glm::mat4& proj);
+            void setView(const glm::mat4& view);
+            void setModel(const glm::mat4& model);
+            void setScreenHeight(float height);
+            void blitToggle();
+
+            void draw();
+        };
+
         Context* context;
-        
+
         uint32_t width = 640;
         uint32_t height = 480;
 
@@ -373,23 +415,36 @@ namespace engine {
 
         // Attributes
         const uint32_t A_VERTICES = 0;
+        const uint32_t A_TEXCOORDS = 1;
 
         // VertexBuffer
         std::vector<glm::vec3> vertices_list;
         uint32_t vertices_buffer = 0;
+
+        // TexCoord Buffer
+        std::vector<glm::vec2> texCoord_list;
+        uint32_t texCoord_buffer = 0;
 
         // Index Array
         std::vector<uint32_t> indencies_list;
         uint32_t indencies_buffer = 0;
 
         // Screen Framebuffer Section
+        uint32_t screen_framebuffer = 0;
+        uint32_t screen_texture = 0;
+
+        // Postprocess
+        FinalPostprocess finalPost;
 
         void init(Context* context);
         void release();
 
-        void clear(const glm::vec4& color);
         void startFrame();
         void endFrame();
+
+        void clear(const glm::vec4& color);
+        void bindShader();
+        void unbindShader();
 
         void setProjection(const glm::mat4& proj);
         void setView(const glm::mat4& view);

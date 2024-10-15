@@ -1,9 +1,8 @@
 /*
-    main.vert.glsl
+    final.vert.glsl
 */
 
 #version 400
-
 
 layout(location=0) in vec3 vertices;
 layout(location=1) in vec2 texCoords;
@@ -11,6 +10,7 @@ layout(location=1) in vec2 texCoords;
 uniform mat4 proj;
 uniform mat4 view;
 uniform mat4 model;
+
 
 out vec2 v_TexCoords;
 
